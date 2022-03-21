@@ -97,16 +97,13 @@ def transform_and_split(df, y_col_name, test_size=0.1, val_size=0.2, SEED=830):
     # ---- Fit Transformer on X Train ----
     fit_processor = full_processor.fit(X_train)
 
-    # ---- Transform all data splits ----
+    # ---- Transform all X data splits ----
     X_train_p = fit_processor.transform(X_train)
     X_val_p = fit_processor.transform(X_val)
     X_test_p = fit_processor.transform(X_test)
-    y_train_p = fit_processor.transform(y_train)
-    y_val_p = fit_processor.transform(y_val)
-    y_test_p = fit_processor.transform(y_test)
 
     # ---- Return Transformed and Split Data ----
-    return X_train_p, X_val_p, X_test_p, y_train_p, y_val_p, y_test_p
+    return X_train_p, X_val_p, X_test_p, y_train, y_val, y_test
 
 
 # ---- Common Imports ----------------------------------------------------------
