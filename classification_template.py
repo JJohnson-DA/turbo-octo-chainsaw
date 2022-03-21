@@ -47,7 +47,7 @@ def transform_and_split(df, y_col_name, test_size=0.1, val_size=0.2, SEED=830):
         SEED: used to set a random state for reproducability
 
     RETURNS: 
-        X_train_p, X_val_p, X_test_p, y_train_p, y_val_p, y_test_p
+        X_train_p, X_val_p, X_test_p, y_train, y_val, y_test
     """
     # ---- Imports ----
     from sklearn.impute import SimpleImputer
