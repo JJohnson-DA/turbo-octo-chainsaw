@@ -198,7 +198,7 @@ model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=auc_met
 early_stopping_monitor = EarlyStopping(patience=3)
 
 # Fit the model
-model = model.fit(
+history = model.fit(
     predictors,
     target,
     validation_split=0.3,
@@ -207,8 +207,66 @@ model = model.fit(
     verbose=1,
 )
 
-# ---- XGBoost ----
-# conda install -c conda-forge xgboost
-# import xgboost as xgb
-# xgb_cl = xgb.XGBClassifier()
+# Check model history
+print(history.history)
 
+# Score the model
+score = history.evaluate(x_test, y_test, verbose = 0) 
+print('Test loss:', score[0]) 
+print('Test accuracy:', score[1])
+
+# Make Predictions
+pred = model.predict(x_test) 
+# Show the first 5 predictions and actual labels
+pred = np.argmax(pred, axis = 1)[:5] 
+label = np.argmax(y_test,axis = 1)[:5]
+
+# ---- Keras Tuner ----
+import kerastuner as kt
+from kerastuner import HyperModel
+
+def model_builder(hp):
+  '''
+  Args:
+    hp - Keras tuner object
+  '''
+  # Initialize the Sequential API and start stacking the layers
+  model = Sequential()
+  # Tune the number of units in the first Dense layer
+  # Choose an optimal value between 32-256
+  hp_units = hp.Int('units', min_value=32, max_value=256, step=32)
+  model.add(Dense(units=hp_units, activation='relu', input_shape=ncols, name='dense_1'))
+  # Add Dropout Layer
+  model.add(keras.layers.Dropout(0.2))
+  # Add the next Dense Layer
+  # Choose an optimal value between 8-128
+  hp_units = hp.Int('units', min_value=8, max_value=128, step=16)
+  model.add(keras.layers.Dense(10, activation='softmax'))
+
+  # Tune the learning rate for the optimizer
+  # Choose an optimal value from 0.01, 0.001, or 0.0001
+  hp_learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+  model.compile(optimizer=keras.optimizers.Adam(learning_rate=hp_learning_rate),
+                loss=keras.losses.SparseCategoricalCrossentropy(),
+                metrics=['accuracy'])
+  return model
+
+# Instantiate the tuner
+tuner = kt.Hyperband(
+    model_builder, # the hypermodel
+    objective=auc_metric, # objective to optimize
+    max_epochs=10,
+    factor=3, # factor which you have seen above 
+    directory='dir', # directory to save logs 
+    project_name='khyperband')
+
+# hypertuning settings
+tuner.search_space_summary() 
+
+# Build the model with the optimal hyperparameters
+h_model = tuner.hypermodel.build(best_hps)
+h_model.summary()
+h_model.fit(x_train, x_test, epochs=10, validation_split=0.2)
+
+# Evaluate the model
+h_eval_dict = h_model.evaluate(img_test, label_test, return_dict=True)
